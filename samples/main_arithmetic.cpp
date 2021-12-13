@@ -17,9 +17,9 @@ int main()
 			Formula f(s);
 			cout << f.Solve() << endl;
 		}
-		catch (runtime_error* e)
+		catch (runtime_error e)
 		{
-			cerr << e;
+			cerr << e.what() << endl;
 		}
 	}
 	return 0;
