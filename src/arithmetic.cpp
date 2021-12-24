@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <sstream>
+#include <iostream>
 
 using namespace std;
 
@@ -12,34 +13,17 @@ Part::Part(){};
 
 Part::Part(string& s)
 {
-	bool t;
-	for (size_t i = 0; i < s.size(); i++)
-	{
-		t = true;
-		for (size_t j = 0; j < correct.size(); j++)
-		{
-			if (s[i] == correct[j])
-			{
-				t = false;
-				break;
-			}
-		}
-		if (t)
-		{
-			throw runtime_error("Wrong symbol");
-		}
-	}
 	if (((s[0] >= '0') && (s[0] <= '9')) || ((s.size() > 1) && (s[1] >= '0') && (s[1] <= '9')))
 	{
 		value = stod(s);
 		type = 'v';
 	}
-	else if((s[0] == '(') || (s[0] == ')'))
+	else if ((s[0] == '(') || (s[0] == ')'))
 	{
 		operation = s;
 		type = 'b';
 	}
-	else 
+	else
 	{
 		if ((s == "+") || (s == "-"))
 		{
@@ -74,12 +58,79 @@ bool Part::Pr()
 	return pr;
 }
 
+void error_search(vector<Part> A)
+{
+	TStack<size_t> st(5);
+	stringstream sserr;
+	string serr;
+	for (size_t i = 0; i < A.size(); i++)
+	{
+		if (A[i].Type() == 'v')
+		{
+			if ((i > 0) && ((A[i - 1].Type() == 'v') || ((A[i - 1].Type() == 'b') && (A[i - 1].Operation() == ")"))))
+			{
+				sserr << "Missing operation for value at " << i + 1;
+				getline(sserr, serr);
+				throw runtime_error(serr);
+			}
+		}
+		else if (A[i].Type() == 'o')
+		{
+			if (A[i].Operation() != "-")
+			{
+				if ((i == 0) || ((A[i - 1].Type() == 'b') && (A[i - 1].Operation() == "(")))
+				{
+					sserr << "Missing value for operation at " << i + 1;
+					getline(sserr, serr);
+					throw runtime_error(serr);
+				}
+			}
+			if ((i > 0) && (A[i - 1].Type() == 'o'))
+			{
+				sserr << "Two operations without a value at " << i + 1;
+				getline(sserr, serr);
+				throw runtime_error(serr);
+			}
+		}
+		else if (A[i].Type() == 'b')
+		{
+			if (A[i].Operation() == "(")
+			{
+				st.push(i);
+			}
+			else
+			{
+				if (!st.is_empty())
+				{
+					st.pop();
+				}
+				else
+				{
+					sserr << "Missing left bracket for bracket at " << i + 1;
+					getline(sserr, serr);
+					throw runtime_error(serr);
+				}
+			}
+		}
+	}
+	if (!st.is_empty())
+	{
+		sserr << "Missing right bracket for bracket at " << st.peek() + 1;
+		getline(sserr, serr);
+		throw runtime_error(serr);
+	}
+	if (A[A.size() - 1].Type() == 'o')
+	{
+		sserr << "Missing value at " << A.size();
+		getline(sserr, serr);
+		throw runtime_error(serr);
+	}
+}
+
 Formula::Formula(string& s)
 {
-	stringstream ss;
-	ss << s;
 	string s1;
-	A = new Part[s.size() / 2 + 1];
+	A = new Part[s.size()];
 	size_t l = 0;
 	TStack<Part> st(5);
 	char pr = 'n';
@@ -87,28 +138,56 @@ Formula::Formula(string& s)
 	bool minus = false;
 	stringstream sserr;
 	string serr;
-	while (ss >> s1)
+	size_t i = 0;
+	vector<Part> pv;
+	while (i < s.size())
 	{
-		try
+		if (((s[i] < '0') || (s[i] > '9')) && (s[i] != '.'))
 		{
-			Part p(s1);
-		}
-		catch (runtime_error* e)
-		{
-			sserr << "Wrong symbol from " << pos << " to " << pos + s.size();
-			getline(sserr, serr);
-			throw runtime_error(serr);
-		}
-		Part p(s1);
-		char t = p.Type();
-		if (t == 'v')
-		{
-			if (pr == 'v')
+			if (s[i] == ' ')
 			{
-				sserr << "Missed operator between two values at " << pos - 1;
+				i++;
+				continue;
+			}
+			if (!((s[i] == '+') || (s[i] == '-') || (s[i] == '*') || (s[i] == '/') || (s[i] == '(') || (s[i] == ')')))
+			{
+				sserr << "Wrong symbol at " << i + 1;
 				getline(sserr, serr);
 				throw runtime_error(serr);
 			}
+			s1 = "";
+			s1 = s1 + s[i];
+			i++;
+		}
+		else
+		{
+			size_t j = i;
+			stringstream ss;
+			while ((j < s.size()) && (((s[j] >= '0') && (s[j] <= '9')) || (s[j] == '.')))
+			{
+				ss << s[j];
+				j++;
+			}
+			ss >> s1;
+			i = j;
+		}
+		Part p(s1);
+		pv.push_back(p);
+	}
+	try
+	{
+		error_search(pv);
+	}
+	catch (runtime_error* e)
+	{
+		throw runtime_error(e->what());
+	}
+	for (size_t i = 0; i < pv.size(); i++)
+	{
+		Part p = pv[i];
+		char t = p.Type();
+		if (t == 'v')
+		{
 			pr = 'v';
 			if (!minus)
 			{
@@ -136,12 +215,6 @@ Formula::Formula(string& s)
 				pos += 2;
 				continue;
 			}
-			if (l == 0)
-			{
-				sserr << "Missing value at " << pos;
-				getline(sserr, serr);
-				throw runtime_error(serr);
-			}
 			st.push(p);
 			pr = 'o';
 		}
@@ -149,31 +222,13 @@ Formula::Formula(string& s)
 		{
 			if (p.Operation() == "(")
 			{
-				if (pr == 'v')
-				{
-					sserr << "Missed operator before bracket at " << pos;
-					getline(sserr, serr);
-					throw runtime_error(serr);
-				}
 				st.push(p);
 				pr = 'l';
 			}
 			else
 			{
-				if (pr = 'o')
-				{
-					sserr << "Missing value at " << pos - 1;
-					getline(sserr, serr);
-					throw runtime_error(serr);
-				}
 				while (!((st.peek().Type() == 'b') && (st.peek().Operation() == "(")))
 				{
-					if (st.is_empty())
-					{
-						sserr << "Missed left bracket. The right bucket was at " << pos;
-						getline(sserr, serr);
-						throw runtime_error(serr);
-					}
 					A[l] = st.peek();
 					l++;
 					st.pop();
@@ -184,20 +239,8 @@ Formula::Formula(string& s)
 		}
 		pos += 1 + s1.size();
 	}
-	if (pr == 'o')
-	{
-		sserr << "Missing value at " << pos;
-		getline(sserr, serr);
-		throw runtime_error(serr);
-	}
 	while (!st.is_empty())
 	{
-		if ((st.peek().Type() == 'b') && (st.peek().Operation() == "("))
-		{
-			sserr << "Missed right bracket";
-			getline(sserr, serr);
-			throw runtime_error(serr);
-		}
 		A[l] = st.peek();
 		l++;
 		st.pop();

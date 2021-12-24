@@ -5,7 +5,7 @@
 
 TEST(Formula, plus_makes_sum)
 {
-	string s = "1 + 2";
+	string s = "1+2";
 	Formula f(s);
 	ASSERT_EQ(f.Solve(), 3);
 }
@@ -31,10 +31,10 @@ TEST(Formula, division_makes_ratio)
 	ASSERT_EQ(f.Solve(), 0.5);
 }
 
-TEST(Part, cant_use_forbidden_symbols)
+TEST(Formula, cant_use_forbidden_symbols)
 {
 	string s = "b";
-	ASSERT_ANY_THROW(Part p(s));
+	ASSERT_ANY_THROW(Formula f(s));
 }
 
 TEST(Formula, cant_lose_operation)
