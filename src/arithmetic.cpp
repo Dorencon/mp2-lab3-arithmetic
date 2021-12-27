@@ -149,14 +149,22 @@ Formula::Formula(string& s)
 				i++;
 				continue;
 			}
-			if (!((s[i] == '+') || (s[i] == '-') || (s[i] == '*') || (s[i] == '/') || (s[i] == '(') || (s[i] == ')')))
+			if ((s[i] == '+') || (s[i] == '-') || (s[i] == '*') || (s[i] == '/') || (s[i] == '(') || (s[i] == ')'))
+			{
+				s1 = "";
+				s1 = s1 + s[i];
+			}
+			else if (s[i] == 'x')
+			{
+				cout << "Please enter x" << endl;
+				getline(cin, s1);
+			}
+			else
 			{
 				sserr << "Wrong symbol at " << i + 1;
 				getline(sserr, serr);
 				throw runtime_error(serr);
 			}
-			s1 = "";
-			s1 = s1 + s[i];
 			i++;
 		}
 		else
@@ -237,7 +245,6 @@ Formula::Formula(string& s)
 				pr = 'r';
 			}
 		}
-		pos += 1 + s1.size();
 	}
 	while (!st.is_empty())
 	{
