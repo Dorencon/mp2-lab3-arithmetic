@@ -140,6 +140,8 @@ Formula::Formula(string& s)
 	string serr;
 	size_t i = 0;
 	vector<Part> pv;
+	bool wx = false;
+	string sx;
 	while (i < s.size())
 	{
 		if (((s[i] < '0') || (s[i] > '9')) && (s[i] != '.'))
@@ -156,8 +158,13 @@ Formula::Formula(string& s)
 			}
 			else if (s[i] == 'x')
 			{
-				cout << "Please enter x" << endl;
-				getline(cin, s1);
+				if (!wx)
+				{
+					cout << "Please enter x" << endl;
+					getline(cin, sx);
+					wx = true;
+				}
+				s1 = sx;
 			}
 			else
 			{
